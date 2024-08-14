@@ -1,12 +1,9 @@
-enum SizableElementPosition {
-    Floating,
-    Parented
-}
+const floating_parent: Element = document.body
 
 class SizableElement
 {
-    parent: SizableElement | null;
-    element: Element | null = null;
+    parent: BarsDockerContainer | null = null; // If no parent then is floating
+    element: Element;
 
     float_x: number = 0;
     float_y: number = 0;
@@ -14,14 +11,27 @@ class SizableElement
     size_x: number = 100;
     size_y: number = 100;
 
-    constructor(parent: SizableElement | null)
+    constructor(element: Element, parent: BarsDockerContainer | null)
     {
-        this.parent = parent
+        this.element = element;
+        this.parentUpdate(parent);
     }
 
     onResize(): void
     {
 
+    }
+
+    parentUpdate(parent: BarsDockerContainer | null)
+    {
+        if (this.element == null) {return;} // Should never occur
+
+        if (this.parent == null)
+        {
+            floating_parent.removeChild(this.element)
+        }
+
+        this.parent = parent
     }
 }
 
@@ -42,10 +52,10 @@ class BarsDockerContainer extends SizableElement
 
     constructor()
     {
-        super(null);
+        const element = document.createElement("div")
+        element.classList.add("BarsDockerContainer")
 
-        this.element = document.createElement("div")
-        this.element.classList.add("BarsDockerContainer")
+        super(element, null);
     }
 
     setChild1(child1: SizableElement | null)
@@ -57,6 +67,11 @@ class BarsDockerContainer extends SizableElement
     {
         this.child2 = child2
     }
+
+    setChild3(child2: SizableElement | null)
+    {
+        this.child2 = child2
+    }
 }
 
 class BarsDockerWindow extends SizableElement
@@ -64,9 +79,10 @@ class BarsDockerWindow extends SizableElement
 
     constructor()
     {
-        super(null);
+        const element = document.createElement("div")
+        element.classList.add("BarsDockerWindow")
 
-        this.element = document.createElement("div")
+        super(element, null);
         this.element.classList.add("BarsDockerContainer")
     }
 }

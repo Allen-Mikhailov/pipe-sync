@@ -1,18 +1,33 @@
-/* Error: Undefined variable.
- *   ,
- * 2 | $border: $border-color solid $border-width;
- *   |          ^^^^^^^^^^^^^
- *   '
- *   public\scss\style.scss 2:10  @use
- *   public\scss\index.scss 1:1   root stylesheet */
-
-body::before {
-  font-family: "Source Code Pro", "SF Mono", Monaco, Inconsolata, "Fira Mono",
-      "Droid Sans Mono", monospace, monospace;
-  white-space: pre;
-  display: block;
-  padding: 1em;
-  margin-bottom: 1em;
-  border-bottom: 2px solid black;
-  content: "Error: Undefined variable.\a   \2577 \a 2 \2502  $border: $border-color solid $border-width;\d\a   \2502           ^^^^^^^^^^^^^\a   \2575 \a   public\\scss\\style.scss 2:10  @use\a   public\\scss\\index.scss 1:1   root stylesheet";
+body {
+  background-color: #242936;
+  overflow: hidden;
 }
+
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+.BarsDockerContainer, .BarsDockerWindow {
+  position: absolute;
+}
+
+.BarsDockerContainerSplitter {
+  position: absolute;
+  background-color: #11141b;
+}
+.BarsDockerContainerSplitter.horizontal {
+  height: 100%;
+  width: 2px;
+}
+.BarsDockerContainerSplitter.vertical {
+  width: 100%;
+  height: 2px;
+}
+
+/*# sourceMappingURL=index.css.map */

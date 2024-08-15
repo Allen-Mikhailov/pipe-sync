@@ -1,12 +1,16 @@
-import { BarsDockerContainer, BarsDocker, BarsDockerWindow } from "./bars-docker.js";
+import { BarsDockerContainer, BarsDocker, BarsDockerWindow, ContainerType } from "./bars-docker.js";
 
-const root: Element | null = document.getElementById("root")
+const root: HTMLElement | null = document.getElementById("root")
 
 if (root == null)
     throw new Error("Could not find root element in the document")
 
 const docker: BarsDocker = new BarsDocker(root);
 
+const container1 = new BarsDockerContainer();
+const window1 = new BarsDockerWindow();
+const window2 = new BarsDockerWindow();
+const window3 = new BarsDockerWindow();
 
-    
-console.log("testing")
+container1.setChildren(window2, window3, ContainerType.Vertical)
+docker.setChildren(container1, window1, ContainerType.Horizontal)

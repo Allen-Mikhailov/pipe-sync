@@ -102,8 +102,6 @@ class BarsDockerContainer extends SizableElement
 
     constructor()
     {
-        
-
         const element = document.createElement("div")
         element.classList.add("BarsDockerContainer")
 
@@ -228,14 +226,29 @@ class BarsDockerContainer extends SizableElement
 
 class BarsDockerWindow extends SizableElement
 {
+    top_bar: HTMLElement;
 
-    constructor()
+    window_name: string = "ERROR: No Window Name";
+
+    constructor(window_name: string)
     {
-        const element = document.createElement("div")
-        element.classList.add("BarsDockerWindow")
+        const element = document.createElement("div");
+        element.classList.add("BarsDockerWindow");
+
+        const top_bar = document.createElement("div");
+        top_bar.classList.add("TopBar");
+        element.appendChild(top_bar);
 
         super(element);
-        this.element.classList.add("BarsDockerContainer")
+        this.element.classList.add("BarsDockerContainer");
+        this.top_bar = top_bar;
+        this.setWindowName(window_name);
+    }
+
+    setWindowName(window_name: string)
+    {
+        this.window_name = window_name;
+        this.top_bar.innerText = window_name;
     }
 }
 

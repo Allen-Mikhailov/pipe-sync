@@ -149,11 +149,21 @@ class BarsDockerContainer extends SizableElement {
     }
 }
 class BarsDockerWindow extends SizableElement {
-    constructor() {
+    constructor(window_name) {
         const element = document.createElement("div");
         element.classList.add("BarsDockerWindow");
+        const top_bar = document.createElement("div");
+        top_bar.classList.add("TopBar");
+        element.appendChild(top_bar);
         super(element);
+        this.window_name = "ERROR: No Window Name";
         this.element.classList.add("BarsDockerContainer");
+        this.top_bar = top_bar;
+        this.setWindowName(window_name);
+    }
+    setWindowName(window_name) {
+        this.window_name = window_name;
+        this.top_bar.innerText = window_name;
     }
 }
 /*

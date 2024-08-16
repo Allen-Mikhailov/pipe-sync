@@ -8,9 +8,9 @@ if (root == null)
 const docker: BarsDocker = new BarsDocker(root);
 
 const container1 = new BarsDockerContainer();
-const window1 = new BarsDockerWindow();
-const window2 = new BarsDockerWindow();
-const window3 = new BarsDockerWindow();
+const window1 = new BarsDockerWindow("Window 1");
+const window2 = new BarsDockerWindow("Window 2");
+const window3 = new BarsDockerWindow("Window 3");
 
 container1.setChildren(window2, window3, ContainerType.Vertical)
 docker.setChildren(container1, window1, ContainerType.Horizontal)

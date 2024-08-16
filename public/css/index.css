@@ -6,6 +6,7 @@ body {
 html, body {
   margin: 0;
   height: 100%;
+  font-family: monospace;
 }
 
 #root {
@@ -15,6 +16,17 @@ html, body {
 
 .BarsDockerContainer, .BarsDockerWindow {
   position: absolute;
+}
+
+.BarsDockerWindow > .TopBar {
+  background-color: #2e3545;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 4vh;
+  width: 100%;
+  border-bottom: #11141b solid 2px;
+  color: #707a80;
 }
 
 .BarsDockerContainerSplitter {

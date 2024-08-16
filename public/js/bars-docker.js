@@ -1,6 +1,5 @@
 const floating_parent = document.body;
 const BORDER_WIDTH = 2;
-const HALF_BORDER = BORDER_WIDTH / 2;
 function flip_vector2(vec) {
     const temp = vec.x;
     vec.x = vec.y;
@@ -61,19 +60,48 @@ class BarsDockerContainer extends SizableElement {
         this.child1 = null;
         this.child2 = null;
         this.split_position = 0.5;
-        const spliter_element = document.createElement("div");
-        spliter_element.classList.add("BarsDockerContainerSplitter");
-        element.appendChild(spliter_element);
-        this.spliter_element = spliter_element;
+        this.drag_start_split = 0;
+        this.dragging = false;
+        this.drag_start_x = 0;
+        this.drag_start_y = 0;
+        const splitter_element = document.createElement("div");
+        splitter_element.classList.add("bar");
+        const splitter_handle = document.createElement("div");
+        splitter_handle.classList.add("BarsDockerContainerSplitter");
+        splitter_handle.draggable = true;
+        splitter_handle.appendChild(splitter_element);
+        splitter_handle.ondragstart = (e) => {
+            this.drag_start_x = e.clientX;
+            this.drag_start_y = e.clientY;
+            this.drag_start_split = this.split_position;
+            this.splitter_handle.classList.add("dragging");
+        };
+        splitter_handle.ondragend = (e) => {
+            this.splitter_handle.classList.remove("dragging");
+        };
+        splitter_handle.ondrag = (e) => {
+            if (e.screenX === 0 || e.screenY === 0) {
+                return;
+            }
+            const major_axis = this.getMajorAxis();
+            const move_start = this.container_type == ContainerType.Horizontal ? this.drag_start_x : this.drag_start_y;
+            const move_current = this.container_type == ContainerType.Horizontal ? e.clientX : e.clientY;
+            const move_precent = (move_current - move_start) / major_axis;
+            this.split_position = Math.min(Math.max(.1, this.drag_start_split + move_precent), .9);
+            this.updateChildrenStates();
+        };
+        element.appendChild(splitter_handle);
+        this.splitter_element = splitter_element;
+        this.splitter_handle = splitter_handle;
     }
     updateContainerType(container_type) {
         this.container_type = container_type;
-        this.spliter_element.classList.remove("horizontal");
-        this.spliter_element.classList.remove("vertical");
+        this.splitter_handle.classList.remove("horizontal");
+        this.splitter_handle.classList.remove("vertical");
         if (container_type == ContainerType.Horizontal)
-            this.spliter_element.classList.add("horizontal");
+            this.splitter_handle.classList.add("horizontal");
         else
-            this.spliter_element.classList.add("vertical");
+            this.splitter_handle.classList.add("vertical");
         this.updateChildrenStates();
     }
     updateChildrenStates() {
@@ -86,16 +114,16 @@ class BarsDockerContainer extends SizableElement {
         const child1_size = { x: split_pos, y: this.getMinorAxis() };
         const child2_size = { x: this.getMajorAxis() - split_pos - BORDER_WIDTH, y: this.getMinorAxis() };
         if (this.container_type == ContainerType.Horizontal) {
-            this.spliter_element.style.left = `${split_pos}px`;
-            this.spliter_element.style.top = "0px";
+            this.splitter_handle.style.left = `${split_pos}px`;
+            this.splitter_handle.style.top = "0px";
         }
         else if (this.container_type == ContainerType.Vertical) {
             flip_vector2(child1_pos);
             flip_vector2(child2_pos);
             flip_vector2(child1_size);
             flip_vector2(child2_size);
-            this.spliter_element.style.top = `${split_pos}px`;
-            this.spliter_element.style.left = "0px";
+            this.splitter_handle.style.top = `${split_pos}px`;
+            this.splitter_handle.style.left = "0px";
         }
         this.child1.setSize(child1_size);
         this.child1.setPosition(child1_pos);

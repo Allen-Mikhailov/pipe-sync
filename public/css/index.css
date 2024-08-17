@@ -18,15 +18,24 @@ html, body {
   position: absolute;
 }
 
+.BarsDockerWindow {
+  background-color: #242936;
+}
 .BarsDockerWindow > .TopBar {
   background-color: #2e3545;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 4vh;
+  height: 3vh;
   width: 100%;
   border-bottom: #11141b solid 2px;
+  user-select: none;
   color: #707a80;
+  text-wrap: nowrap;
+}
+.BarsDockerWindow.floating {
+  border: #11141b solid 2px;
+  z-index: 4;
 }
 
 .BarsDockerContainerSplitter {
@@ -38,6 +47,7 @@ html, body {
   background-color: #11141b;
   transition: scale 0.5s;
   transition: background-color 0.5s;
+  z-index: -4;
 }
 .BarsDockerContainerSplitter:hover .bar, .BarsDockerContainerSplitter.dragging .bar {
   background-color: #ea9431;

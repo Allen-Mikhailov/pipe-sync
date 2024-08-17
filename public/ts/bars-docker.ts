@@ -1,17 +1,36 @@
+import Vector2 from "./vector2.js";
+
 const floating_parent: Element = document.body
 
 const BORDER_WIDTH: number = 2;
 
-interface Vector2 {
-    x: number,
-    y: number
+const windows: { [key: string]: BarsDockerWindow } = {}
+
+let is_dragging = false
+let dragging_move_connection: (pos: Vector2) => void = (pos: Vector2) => {}
+let dragging_end_connection: () => void = () => {}
+
+document.body.onmousemove = function(e)
+{
+    if (is_dragging)
+        dragging_move_connection(new Vector2(e.clientX, e.clientY));
 }
 
-function flip_vector2(vec: Vector2)
+document.body.onmouseup = function(e)
 {
-    const temp: number = vec.x;
-    vec.x = vec.y;
-    vec.y = temp;
+    if (is_dragging)
+    {
+        is_dragging = false
+        dragging_end_connection()
+    }
+}
+
+function createKey(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
 }
 
 enum ChildType
@@ -28,12 +47,15 @@ class SizableElement
 
     child_type: ChildType = ChildType.None;
 
-    pos: Vector2 = { x: 0, y: 0};
-    size: Vector2 = { x: 100, y: 100 };
+    pos: Vector2 = new Vector2(0, 0);
+    size: Vector2 = new Vector2(100, 100);
+
+    id: string;
 
     constructor(element: HTMLElement)
     {
         this.element = element;
+        this.id = createKey();
     }
 
     setPosition(pos: Vector2)
@@ -66,6 +88,12 @@ class SizableElement
         if (parent)
         {
             parent.element.appendChild(this.element);
+            this.element.classList.remove("floating")
+        } else {
+            floating_parent.appendChild(this.element)
+            this.setPosition(this.pos)
+            this.setSize(this.size)
+            this.element.classList.add("floating")
         }
 
         this.parent = parent;
@@ -157,7 +185,7 @@ class BarsDockerContainer extends SizableElement
         if (container_type == ContainerType.Horizontal)
             this.splitter_handle.classList.add("horizontal")
         else
-        this.splitter_handle.classList.add("vertical")
+            this.splitter_handle.classList.add("vertical")
 
         this.updateChildrenStates()
     }
@@ -168,22 +196,21 @@ class BarsDockerContainer extends SizableElement
 
         const split_pos = Math.floor((this.getMajorAxis()-BORDER_WIDTH)*this.split_position);
 
-        const child1_pos = {x: 0, y: 0}
-        const child2_pos = {x: split_pos+BORDER_WIDTH, y: 0}
+        const child1_pos: Vector2 = new Vector2(0, 0)
+        const child2_pos: Vector2 = new Vector2(split_pos+BORDER_WIDTH, 0)
 
-        const child1_size = {x: split_pos, y: this.getMinorAxis()}
-        const child2_size = {x: this.getMajorAxis()-split_pos-BORDER_WIDTH, y: this.getMinorAxis()}
+        const child1_size: Vector2 = new Vector2(split_pos, this.getMinorAxis())
+        const child2_size: Vector2 = new Vector2(this.getMajorAxis()-split_pos-BORDER_WIDTH, this.getMinorAxis())
 
         if (this.container_type == ContainerType.Horizontal)
         {
             this.splitter_handle.style.left = `${split_pos}px`
             this.splitter_handle.style.top = "0px"
         } else if (this.container_type == ContainerType.Vertical) {
-
-            flip_vector2(child1_pos);
-            flip_vector2(child2_pos);
-            flip_vector2(child1_size);
-            flip_vector2(child2_size);
+            child1_pos.flipSelf();
+            child2_pos.flipSelf();
+            child1_size.flipSelf();
+            child2_size.flipSelf();
 
             this.splitter_handle.style.top = `${split_pos}px`
             this.splitter_handle.style.left = "0px"
@@ -230,6 +257,10 @@ class BarsDockerWindow extends SizableElement
 
     window_name: string = "ERROR: No Window Name";
 
+    dragging: boolean = false;
+    drag_start: Vector2 = Vector2.zero();
+    drag_start_pos: Vector2 = Vector2.zero();
+
     constructor(window_name: string)
     {
         const element = document.createElement("div");
@@ -239,10 +270,29 @@ class BarsDockerWindow extends SizableElement
         top_bar.classList.add("TopBar");
         element.appendChild(top_bar);
 
+        top_bar.onmousedown = (e) => {
+            this.dragging = true
+            this.drag_start = new Vector2(e.clientX, e.clientY)
+            this.drag_start_pos = this.pos.clone()
+
+            dragging_move_connection = (pos: Vector2) => {
+                // Is floating
+                const dif: Vector2 = pos.sub(this.drag_start)
+                if (this.parent == null)
+                {
+                    this.setPosition(this.drag_start_pos.add(dif))
+                }
+            }
+
+            is_dragging = true
+        }
+
         super(element);
         this.element.classList.add("BarsDockerContainer");
         this.top_bar = top_bar;
         this.setWindowName(window_name);
+
+        windows[this.id] = this
     }
 
     setWindowName(window_name: string)
@@ -252,17 +302,13 @@ class BarsDockerWindow extends SizableElement
     }
 }
 
-/*
-
-*/
-
 class BarsDocker extends BarsDockerContainer
 {
     root: HTMLElement;
 
     size_update()
     {
-        this.setSize({x: this.root.clientWidth, y: this.root.clientHeight})
+        this.setSize(new Vector2(this.root.clientWidth, this.root.clientHeight))
     }
 
     constructor(root: HTMLElement)

@@ -113,3 +113,48 @@ html, body {
         }
     }
 }
+
+.docking-stations-container {
+    position: absolute;
+    width: 100%;
+    height: calc(100% - $tab-height - $border-width);
+    background-color: $primary-color;
+    left: 0%;
+    top: calc($tab-height + $border-width);
+
+    $square-size: calc(20%);
+
+    & div {
+        width: $square-size;
+        height: $square-size;
+        position: absolute;
+        translate: -50% -50%;
+
+        background-color: $secondary-color;
+    }
+    
+    & .left {
+        top: 50%;
+        left: calc(50% - $square-size * 1.5);
+    }
+
+    & .right {
+        top: 50%;
+        left: calc(50% + $square-size * 1.5);
+    }
+
+    & .top {
+        left: 50%;
+        top: calc(50% - $square-size * 1.5);
+    }
+
+    & .bottom {
+        left: 50%;
+        top: calc(50% + $square-size * 1.5);
+    }
+
+    & .center {
+        left: 50%;
+        top: 50%;
+    }
+}

@@ -81,4 +81,40 @@ html, body {
   scale: 1 1.4;
 }
 
+.docking-stations-container {
+  position: absolute;
+  width: 100%;
+  height: calc(100% - 3vh - 2px);
+  background-color: #242936;
+  left: 0%;
+  top: calc(3vh + 2px);
+}
+.docking-stations-container div {
+  width: 20%;
+  height: 20%;
+  position: absolute;
+  translate: -50% -50%;
+  background-color: #192229;
+}
+.docking-stations-container .left {
+  top: 50%;
+  left: 20%;
+}
+.docking-stations-container .right {
+  top: 50%;
+  left: 80%;
+}
+.docking-stations-container .top {
+  left: 50%;
+  top: 20%;
+}
+.docking-stations-container .bottom {
+  left: 50%;
+  top: 80%;
+}
+.docking-stations-container .center {
+  left: 50%;
+  top: 50%;
+}
+
 /*# sourceMappingURL=index.css.map */

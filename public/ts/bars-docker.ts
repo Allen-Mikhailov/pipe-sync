@@ -6,6 +6,24 @@ const BORDER_WIDTH: number = 2;
 
 const windows: { [key: string]: BarsDockerWindow } = {}
 
+const MIN_WINDOW_WIDTH = 100
+const MIN_WINDOW_HEIGHT = 120
+
+enum DragType {
+    None,
+    TopBar,
+    LeftEdge,
+    RightEdge,
+    TopEdge,
+    BottomEdge,
+    TopLeftEdge,
+    TopRightEdge,
+    BottomLeftEdge,
+    BottomRightEdge,
+    HorizontalSplitter,
+    VerticalSplitter
+}
+
 let is_dragging = false
 let dragging_move_connection: (pos: Vector2) => void = (pos: Vector2) => {}
 let dragging_end_connection: () => void = () => {}
@@ -48,7 +66,7 @@ class SizableElement
     child_type: ChildType = ChildType.None;
 
     pos: Vector2 = new Vector2(0, 0);
-    size: Vector2 = new Vector2(100, 100);
+    size: Vector2 = new Vector2(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
 
     id: string;
 
@@ -159,19 +177,40 @@ class BarsDockerContainer extends SizableElement
                 return;
             }
 
+            const is_horizontal: boolean = this.container_type==ContainerType.Horizontal
+
             const major_axis = this.getMajorAxis()
-            const move_start = this.container_type==ContainerType.Horizontal?this.drag_start_x:this.drag_start_y;
-            const move_current = this.container_type==ContainerType.Horizontal?e.clientX:e.clientY;
+            const move_start = is_horizontal?this.drag_start_x:this.drag_start_y;
+            const move_current = is_horizontal?e.clientX:e.clientY;
 
             const move_precent = (move_current-move_start)/major_axis;
 
-            this.split_position = Math.min(Math.max(.1, this.drag_start_split+move_precent), .9)
+            const major_axis_min = is_horizontal?MIN_WINDOW_WIDTH/this.size.x:MIN_WINDOW_HEIGHT/this.size.y
+
+            this.split_position = Math.min(Math.max(major_axis_min, this.drag_start_split+move_precent), 1-major_axis_min)
             this.updateChildrenStates()
         }
 
         element.appendChild(splitter_handle)
         this.splitter_element = splitter_element;
         this.splitter_handle = splitter_handle;
+    }
+
+    get_all_windows(): BarsDockerWindow[]
+    {
+        const windows: BarsDockerWindow[] = []
+
+        if (this.child1 instanceof BarsDockerWindow)
+            windows.push(this.child1)
+        else if (this.child1 instanceof BarsDockerContainer)
+            windows.push(...this.child1.get_all_windows())
+
+        if (this.child2 instanceof BarsDockerWindow)
+            windows.push(this.child2)
+        else if (this.child2 instanceof BarsDockerContainer)
+            windows.push(...this.child2.get_all_windows())
+        
+        return windows
     }
 
     updateContainerType(container_type: ContainerType)
@@ -251,15 +290,85 @@ class BarsDockerContainer extends SizableElement
     }
 }
 
+function is_hovering(element: HTMLElement, x: number, y: number): boolean
+{
+    return true;
+}
+
+class DockingPoint
+{
+    center_dock: HTMLElement;
+    left_dock: HTMLElement;
+    right_dock: HTMLElement;
+    top_dock: HTMLElement;
+    bottom_dock: HTMLElement;
+
+    container: HTMLElement;
+
+    parent: SizableElement;
+
+    constructor(parent: SizableElement)
+    {
+        this.parent = parent
+
+        const container = document.createElement("div")
+        container.classList.add("docking-stations-container")
+        this.container = container
+
+        const left_dock = document.createElement("div")
+        left_dock.classList.add("left")
+        container.appendChild(left_dock)
+        this.left_dock = left_dock
+
+        const right_dock = document.createElement("div")
+        right_dock.classList.add("right")
+        container.appendChild(right_dock)
+        this.right_dock = right_dock
+
+        const top_dock = document.createElement("div")
+        top_dock.classList.add("top")
+        container.appendChild(top_dock)
+        this.top_dock = top_dock
+
+        const bottom_dock = document.createElement("div")
+        bottom_dock.classList.add("bottom")
+        container.appendChild(bottom_dock)
+        this.bottom_dock = bottom_dock
+
+        const center_dock = document.createElement("div")
+        center_dock.classList.add("center")
+        container.appendChild(center_dock)
+        this.center_dock = center_dock
+
+        parent.element.appendChild(container)
+
+        this.toggle_display(false)
+    }
+
+    get_hovered_dock(clientX: number, clientY: number): string|null
+    {
+        if (is_hovering(this.center_dock, clientX, clientY))
+            return "center"
+
+        return null
+    }
+
+    toggle_display(value: boolean) {
+        this.container.style.visibility = value?"visible":"hidden"
+    }
+}
+
 class BarsDockerWindow extends SizableElement
 {
     top_bar: HTMLElement;
 
     window_name: string = "ERROR: No Window Name";
 
-    dragging: boolean = false;
+    drag_type: DragType = DragType.None;
     drag_start: Vector2 = Vector2.zero();
     drag_start_pos: Vector2 = Vector2.zero();
+
+    docking_point: DockingPoint;
 
     constructor(window_name: string)
     {
@@ -271,7 +380,7 @@ class BarsDockerWindow extends SizableElement
         element.appendChild(top_bar);
 
         top_bar.onmousedown = (e) => {
-            this.dragging = true
+            this.drag_type = DragType.TopBar
             this.drag_start = new Vector2(e.clientX, e.clientY)
             this.drag_start_pos = this.pos.clone()
 
@@ -284,6 +393,11 @@ class BarsDockerWindow extends SizableElement
                 }
             }
 
+            dragging_end_connection = () => {
+                this.drag_type = DragType.None
+                
+            }
+
             is_dragging = true
         }
 
@@ -292,7 +406,13 @@ class BarsDockerWindow extends SizableElement
         this.top_bar = top_bar;
         this.setWindowName(window_name);
 
+        this.docking_point = new DockingPoint(this)
+
         windows[this.id] = this
+    }
+
+    toggle_docking_display(value: boolean) {
+        this.docking_point.toggle_display(value);
     }
 
     setWindowName(window_name: string)
@@ -305,6 +425,7 @@ class BarsDockerWindow extends SizableElement
 class BarsDocker extends BarsDockerContainer
 {
     root: HTMLElement;
+    hovered_window: BarsDockerWindow|null
 
     size_update()
     {
@@ -315,11 +436,46 @@ class BarsDocker extends BarsDockerContainer
     {
         super();
         this.root = root;
+        this.hovered_window = null
 
         this.root.appendChild(this.element);
 
-        root.onresize = () => this.size_update()
         this.size_update()
+
+        const self: BarsDocker = this
+        function update()
+        {
+            // Checking for size updates
+            if (self.root.clientWidth != self.size.x || self.root.clientHeight != self.size.y)
+                self.size_update()
+
+
+            requestAnimationFrame(update)
+        }
+
+        this.element.onmousemove = (e: MouseEvent) => {
+            const x: number = e.clientX
+            const y: number = e.clientY
+
+            let hovered_window = null
+            const window_names = Object.keys(windows)
+            for (let i = 0; i < window_names.length; i++)
+            {
+                const window = windows[window_names[i]]
+                if (
+                    (x-window.pos.x) <= window.size.x && (x-window.pos.x) >= 0 &&
+                    (y-window.pos.y) <= window.size.y && (y-window.pos.y) >= 0
+                )
+                {
+                    hovered_window = window
+                    break;
+                }
+            }
+
+            this.hovered_window = hovered_window
+        }
+
+        update()
     }
 }
 

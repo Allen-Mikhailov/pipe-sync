@@ -2,6 +2,23 @@ import Vector2 from "./vector2.js";
 const floating_parent = document.body;
 const BORDER_WIDTH = 2;
 const windows = {};
+const MIN_WINDOW_WIDTH = 100;
+const MIN_WINDOW_HEIGHT = 120;
+var DragType;
+(function (DragType) {
+    DragType[DragType["None"] = 0] = "None";
+    DragType[DragType["TopBar"] = 1] = "TopBar";
+    DragType[DragType["LeftEdge"] = 2] = "LeftEdge";
+    DragType[DragType["RightEdge"] = 3] = "RightEdge";
+    DragType[DragType["TopEdge"] = 4] = "TopEdge";
+    DragType[DragType["BottomEdge"] = 5] = "BottomEdge";
+    DragType[DragType["TopLeftEdge"] = 6] = "TopLeftEdge";
+    DragType[DragType["TopRightEdge"] = 7] = "TopRightEdge";
+    DragType[DragType["BottomLeftEdge"] = 8] = "BottomLeftEdge";
+    DragType[DragType["BottomRightEdge"] = 9] = "BottomRightEdge";
+    DragType[DragType["HorizontalSplitter"] = 10] = "HorizontalSplitter";
+    DragType[DragType["VerticalSplitter"] = 11] = "VerticalSplitter";
+})(DragType || (DragType = {}));
 let is_dragging = false;
 let dragging_move_connection = (pos) => { };
 let dragging_end_connection = () => { };
@@ -33,7 +50,7 @@ class SizableElement {
         this.parent = null; // If no parent then is floating
         this.child_type = ChildType.None;
         this.pos = new Vector2(0, 0);
-        this.size = new Vector2(100, 100);
+        this.size = new Vector2(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
         this.element = element;
         this.id = createKey();
     }
@@ -108,16 +125,30 @@ class BarsDockerContainer extends SizableElement {
             if (e.screenX === 0 || e.screenY === 0) {
                 return;
             }
+            const is_horizontal = this.container_type == ContainerType.Horizontal;
             const major_axis = this.getMajorAxis();
-            const move_start = this.container_type == ContainerType.Horizontal ? this.drag_start_x : this.drag_start_y;
-            const move_current = this.container_type == ContainerType.Horizontal ? e.clientX : e.clientY;
+            const move_start = is_horizontal ? this.drag_start_x : this.drag_start_y;
+            const move_current = is_horizontal ? e.clientX : e.clientY;
             const move_precent = (move_current - move_start) / major_axis;
-            this.split_position = Math.min(Math.max(.1, this.drag_start_split + move_precent), .9);
+            const major_axis_min = is_horizontal ? MIN_WINDOW_WIDTH / this.size.x : MIN_WINDOW_HEIGHT / this.size.y;
+            this.split_position = Math.min(Math.max(major_axis_min, this.drag_start_split + move_precent), 1 - major_axis_min);
             this.updateChildrenStates();
         };
         element.appendChild(splitter_handle);
         this.splitter_element = splitter_element;
         this.splitter_handle = splitter_handle;
+    }
+    get_all_windows() {
+        const windows = [];
+        if (this.child1 instanceof BarsDockerWindow)
+            windows.push(this.child1);
+        else if (this.child1 instanceof BarsDockerContainer)
+            windows.push(...this.child1.get_all_windows());
+        if (this.child2 instanceof BarsDockerWindow)
+            windows.push(this.child2);
+        else if (this.child2 instanceof BarsDockerContainer)
+            windows.push(...this.child2.get_all_windows());
+        return windows;
     }
     updateContainerType(container_type) {
         this.container_type = container_type;
@@ -173,6 +204,47 @@ class BarsDockerContainer extends SizableElement {
         return this.container_type == ContainerType.Horizontal ? this.size.y : this.size.x;
     }
 }
+function is_hovering(element, x, y) {
+    return true;
+}
+class DockingPoint {
+    constructor(parent) {
+        this.parent = parent;
+        const container = document.createElement("div");
+        container.classList.add("docking-stations-container");
+        this.container = container;
+        const left_dock = document.createElement("div");
+        left_dock.classList.add("left");
+        container.appendChild(left_dock);
+        this.left_dock = left_dock;
+        const right_dock = document.createElement("div");
+        right_dock.classList.add("right");
+        container.appendChild(right_dock);
+        this.right_dock = right_dock;
+        const top_dock = document.createElement("div");
+        top_dock.classList.add("top");
+        container.appendChild(top_dock);
+        this.top_dock = top_dock;
+        const bottom_dock = document.createElement("div");
+        bottom_dock.classList.add("bottom");
+        container.appendChild(bottom_dock);
+        this.bottom_dock = bottom_dock;
+        const center_dock = document.createElement("div");
+        center_dock.classList.add("center");
+        container.appendChild(center_dock);
+        this.center_dock = center_dock;
+        parent.element.appendChild(container);
+        this.toggle_display(false);
+    }
+    get_hovered_dock(clientX, clientY) {
+        if (is_hovering(this.center_dock, clientX, clientY))
+            return "center";
+        return null;
+    }
+    toggle_display(value) {
+        this.container.style.visibility = value ? "visible" : "hidden";
+    }
+}
 class BarsDockerWindow extends SizableElement {
     constructor(window_name) {
         const element = document.createElement("div");
@@ -181,7 +253,7 @@ class BarsDockerWindow extends SizableElement {
         top_bar.classList.add("TopBar");
         element.appendChild(top_bar);
         top_bar.onmousedown = (e) => {
-            this.dragging = true;
+            this.drag_type = DragType.TopBar;
             this.drag_start = new Vector2(e.clientX, e.clientY);
             this.drag_start_pos = this.pos.clone();
             dragging_move_connection = (pos) => {
@@ -191,17 +263,24 @@ class BarsDockerWindow extends SizableElement {
                     this.setPosition(this.drag_start_pos.add(dif));
                 }
             };
+            dragging_end_connection = () => {
+                this.drag_type = DragType.None;
+            };
             is_dragging = true;
         };
         super(element);
         this.window_name = "ERROR: No Window Name";
-        this.dragging = false;
+        this.drag_type = DragType.None;
         this.drag_start = Vector2.zero();
         this.drag_start_pos = Vector2.zero();
         this.element.classList.add("BarsDockerContainer");
         this.top_bar = top_bar;
         this.setWindowName(window_name);
+        this.docking_point = new DockingPoint(this);
         windows[this.id] = this;
+    }
+    toggle_docking_display(value) {
+        this.docking_point.toggle_display(value);
     }
     setWindowName(window_name) {
         this.window_name = window_name;
@@ -215,9 +294,32 @@ class BarsDocker extends BarsDockerContainer {
     constructor(root) {
         super();
         this.root = root;
+        this.hovered_window = null;
         this.root.appendChild(this.element);
-        root.onresize = () => this.size_update();
         this.size_update();
+        const self = this;
+        function update() {
+            // Checking for size updates
+            if (self.root.clientWidth != self.size.x || self.root.clientHeight != self.size.y)
+                self.size_update();
+            requestAnimationFrame(update);
+        }
+        this.element.onmousemove = (e) => {
+            const x = e.clientX;
+            const y = e.clientY;
+            let hovered_window = null;
+            const window_names = Object.keys(windows);
+            for (let i = 0; i < window_names.length; i++) {
+                const window = windows[window_names[i]];
+                if ((x - window.pos.x) <= window.size.x && (x - window.pos.x) >= 0 &&
+                    (y - window.pos.y) <= window.size.y && (y - window.pos.y) >= 0) {
+                    hovered_window = window;
+                    break;
+                }
+            }
+            this.hovered_window = hovered_window;
+        };
+        update();
     }
 }
 export { BarsDocker, BarsDockerContainer, BarsDockerWindow, ChildType, Vector2, ContainerType };
